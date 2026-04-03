@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server'
 import { loginWithCredentials, fetchUserAccount } from '@/lib/hevy-internal'
+import { getRecaptchaToken } from '@/lib/recaptcha'
+
+// Allow up to 30 seconds for headless Chrome + reCAPTCHA + Hevy API
+export const maxDuration = 30
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +16,19 @@ export async function POST(req: Request) {
       )
     }
 
-    const loginData = await loginWithCredentials(emailOrUsername, password)
+    // Generate reCAPTCHA token server-side via headless browser
+    let recaptchaToken: string
+    try {
+      recaptchaToken = await getRecaptchaToken()
+    } catch (err) {
+      console.error('[Login] reCAPTCHA error:', err instanceof Error ? err.message : err)
+      return NextResponse.json(
+        { error: 'Failed to generate security token. Please try again.' },
+        { status: 500 }
+      )
+    }
+
+    const loginData = await loginWithCredentials(emailOrUsername, password, recaptchaToken)
 
     // Fetch username if not returned by login
     let username = loginData.username

@@ -7,7 +7,7 @@ function internalHeaders(accessToken?: string): HeadersInit {
   const h: HeadersInit = {
     'x-api-key': INTERNAL_API_KEY,
     'Content-Type': 'application/json',
-    'Hevy-Platform': 'ios',
+    'Hevy-Platform': 'web',
   }
   if (accessToken) {
     h['Authorization'] = `Bearer ${accessToken}`
@@ -17,7 +17,8 @@ function internalHeaders(accessToken?: string): HeadersInit {
 
 export async function loginWithCredentials(
   emailOrUsername: string,
-  password: string
+  password: string,
+  recaptchaToken: string
 ): Promise<LoginResponse> {
   const res = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
@@ -25,6 +26,7 @@ export async function loginWithCredentials(
     body: JSON.stringify({
       emailOrUsername,
       password,
+      recaptchaToken,
       useAuth2_0: true,
     }),
   })
