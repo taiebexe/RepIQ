@@ -3,7 +3,7 @@ import { loginWithCredentials, fetchUserAccount } from '@/lib/hevy-internal'
 
 export async function POST(req: Request) {
   try {
-    const { emailOrUsername, password, recaptchaToken } = await req.json()
+    const { emailOrUsername, password } = await req.json()
 
     if (!emailOrUsername || !password) {
       return NextResponse.json(
@@ -12,18 +12,7 @@ export async function POST(req: Request) {
       )
     }
 
-    if (!recaptchaToken) {
-      return NextResponse.json(
-        { error: 'reCAPTCHA token is required' },
-        { status: 400 }
-      )
-    }
-
-    const loginData = await loginWithCredentials(
-      emailOrUsername,
-      password,
-      recaptchaToken
-    )
+    const loginData = await loginWithCredentials(emailOrUsername, password)
 
     // Fetch username if not returned by login
     let username = loginData.username
