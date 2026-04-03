@@ -68,16 +68,9 @@ export async function fetchAllWorkouts(apiKey: string): Promise<HevyWorkout[]> {
     }))
   })
 
-  const ninetyDaysAgo = new Date()
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
-
-  const filtered = allWorkouts.filter(
-    (w) => new Date(w.start_time) >= ninetyDaysAgo
-  )
-
-  filtered.sort(
+  allWorkouts.sort(
     (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
   )
 
-  return filtered
+  return allWorkouts
 }

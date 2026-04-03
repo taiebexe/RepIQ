@@ -95,6 +95,45 @@ export interface AIInsight {
   type: 'plateau' | 'volume' | 'frequency' | 'recovery' | 'progress'
 }
 
+export interface MuscleDistribution {
+  group: string
+  sets: number
+  volume: number
+  percentage: number
+}
+
+export interface SessionDuration {
+  date: string
+  durationMin: number
+}
+
+export interface WeeklyVolumeTrend {
+  weekLabel: string
+  totalVolume: number
+  totalSets: number
+}
+
+export interface RepRangeBreakdown {
+  range: string
+  count: number
+  percentage: number
+}
+
+export interface TimeOfDayBucket {
+  hour: number
+  label: string
+  count: number
+}
+
+export interface ExerciseRank {
+  title: string
+  muscleGroup: string
+  sessions: number
+  totalVolume: number
+  best1RM: number
+  trend: 'up' | 'down' | 'stable'
+}
+
 export interface DashboardData {
   summary: SummaryStats
   topLifts: Record<string, LiftSession[]>
@@ -103,4 +142,10 @@ export interface DashboardData {
   plateaus: PlateauSignal[]
   aiContext: string
   recentPRs: { exercise: string; type: string; value: number; date: string }[]
+  muscleDistribution: MuscleDistribution[]
+  sessionDurations: SessionDuration[]
+  weeklyVolumeTrend: WeeklyVolumeTrend[]
+  repRanges: RepRangeBreakdown[]
+  timeOfDay: TimeOfDayBucket[]
+  exerciseRanking: ExerciseRank[]
 }

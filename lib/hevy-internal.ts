@@ -92,8 +92,6 @@ export async function fetchAllWorkoutsInternal(
 ): Promise<HevyWorkout[]> {
   const allWorkouts: HevyWorkout[] = []
   let offset = 0
-  const ninetyDaysAgo = new Date()
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
 
   while (true) {
     const res = await fetch(
@@ -110,7 +108,6 @@ export async function fetchAllWorkoutsInternal(
 
     for (const w of workouts) {
       const startTime = normalizeTimestamp(w.start_time)
-      if (new Date(startTime) < ninetyDaysAgo) continue
 
       allWorkouts.push({
         id: w.id,

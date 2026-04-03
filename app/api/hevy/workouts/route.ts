@@ -9,6 +9,12 @@ import {
   getSummaryStats,
   buildAIContext,
   extractRecentPRs,
+  getMuscleDistribution,
+  getSessionDurations,
+  getWeeklyVolumeTrend,
+  getRepRangeBreakdown,
+  getTimeOfDay,
+  getExerciseRanking,
 } from '@/lib/analytics'
 import { AuthType } from '@/lib/types'
 
@@ -46,6 +52,12 @@ export async function POST(req: Request) {
     const plateaus = detectPlateaus(workouts)
     const aiContext = buildAIContext(workouts)
     const recentPRs = extractRecentPRs(workouts)
+    const muscleDistribution = getMuscleDistribution(workouts)
+    const sessionDurations = getSessionDurations(workouts)
+    const weeklyVolumeTrend = getWeeklyVolumeTrend(workouts)
+    const repRanges = getRepRangeBreakdown(workouts)
+    const timeOfDay = getTimeOfDay(workouts)
+    const exerciseRanking = getExerciseRanking(workouts)
 
     return NextResponse.json({
       summary,
@@ -55,6 +67,12 @@ export async function POST(req: Request) {
       plateaus,
       aiContext,
       recentPRs,
+      muscleDistribution,
+      sessionDurations,
+      weeklyVolumeTrend,
+      repRanges,
+      timeOfDay,
+      exerciseRanking,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

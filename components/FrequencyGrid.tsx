@@ -44,7 +44,7 @@ export default function FrequencyGrid({ data }: { data: FrequencyDay[] }) {
       <div className="mb-4 flex items-baseline gap-4">
         <p className="text-sm text-[#888]">
           <span className="text-lg font-semibold text-white">{totalWorkouts}</span>{' '}
-          workouts in 90 days
+          workouts in the last year
         </p>
         <p className="text-sm text-[#888]">
           <span className="font-medium text-[#22c55e]">{activeDays}</span> active days

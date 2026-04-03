@@ -6,6 +6,12 @@ import {
   FrequencyDay,
   PlateauSignal,
   SummaryStats,
+  MuscleDistribution,
+  SessionDuration,
+  WeeklyVolumeTrend,
+  RepRangeBreakdown,
+  TimeOfDayBucket,
+  ExerciseRank,
 } from './types'
 
 const MUSCLE_GROUP_MAP: Record<string, string> = {
@@ -241,7 +247,9 @@ export function getTrainingFrequency(workouts: HevyWorkout[]): FrequencyDay[] {
     countMap[dateStr] = (countMap[dateStr] || 0) + 1
   }
 
-  for (let i = 89; i >= 0; i--) {
+  // Show last 365 days (52 weeks) for a full year heatmap
+  const totalDays = 365
+  for (let i = totalDays - 1; i >= 0; i--) {
     const d = new Date(now)
     d.setDate(d.getDate() - i)
     const dateStr = d.toISOString().split('T')[0]
@@ -360,7 +368,10 @@ export function getSummaryStats(workouts: HevyWorkout[]): SummaryStats {
     else break
   }
 
-  const weeksInRange = Math.max(1, 90 / 7)
+  // Calculate weeks from actual data range
+  const firstWorkout = workouts.length > 0 ? new Date(workouts[0].start_time) : now
+  const dayRange = Math.max(1, (now.getTime() - firstWorkout.getTime()) / (1000 * 60 * 60 * 24))
+  const weeksInRange = Math.max(1, dayRange / 7)
 
   return {
     totalWorkouts: workouts.length,
@@ -465,4 +476,222 @@ ${liftSummary}
 
 Plateau signals:
 ${plateauSummary}`
+}
+
+// ── New analytics functions ─────────────────────────────────
+
+export function getMuscleDistribution(
+  workouts: HevyWorkout[]
+): MuscleDistribution[] {
+  const groups: Record<string, { sets: number; volume: number }> = {}
+
+  for (const w of workouts) {
+    for (const ex of w.exercises) {
+      const group = getMuscleGroup(ex)
+      if (!groups[group]) groups[group] = { sets: 0, volume: 0 }
+      for (const s of ex.sets) {
+        if (s.set_type === 'normal' || s.set_type === undefined) {
+          groups[group].sets++
+          if (s.weight_kg != null && s.reps != null) {
+            groups[group].volume += s.weight_kg * s.reps
+          }
+        }
+      }
+    }
+  }
+
+  const totalSets = Object.values(groups).reduce((s, g) => s + g.sets, 0)
+
+  return Object.entries(groups)
+    .map(([group, data]) => ({
+      group,
+      sets: data.sets,
+      volume: Math.round(data.volume),
+      percentage: totalSets > 0 ? Math.round((data.sets / totalSets) * 100) : 0,
+    }))
+    .sort((a, b) => b.sets - a.sets)
+}
+
+export function getSessionDurations(
+  workouts: HevyWorkout[]
+): SessionDuration[] {
+  return workouts
+    .map((w) => {
+      const start = new Date(w.start_time).getTime()
+      const end = new Date(w.end_time).getTime()
+      const durationMin = Math.round((end - start) / 60000)
+      return {
+        date: w.start_time.split('T')[0],
+        durationMin: durationMin > 0 && durationMin < 300 ? durationMin : 0,
+      }
+    })
+    .filter((d) => d.durationMin > 0)
+}
+
+export function getWeeklyVolumeTrend(
+  workouts: HevyWorkout[]
+): WeeklyVolumeTrend[] {
+  const now = new Date()
+  const currentMonday = getMonday(now)
+  const weeks: { monday: Date; label: string; volume: number; sets: number }[] = []
+
+  for (let i = 11; i >= 0; i--) {
+    const monday = new Date(currentMonday)
+    monday.setDate(monday.getDate() - i * 7)
+    weeks.push({
+      monday,
+      label: formatWeekLabel(monday),
+      volume: 0,
+      sets: 0,
+    })
+  }
+
+  for (const w of workouts) {
+    const wMonday = getMonday(new Date(w.start_time))
+    for (const week of weeks) {
+      if (wMonday.getTime() === week.monday.getTime()) {
+        if (w.estimated_volume_kg) {
+          week.volume += w.estimated_volume_kg
+        }
+        for (const ex of w.exercises) {
+          for (const s of ex.sets) {
+            if (s.set_type === 'normal' || s.set_type === undefined) {
+              week.sets++
+              if (!w.estimated_volume_kg && s.weight_kg != null && s.reps != null) {
+                week.volume += s.weight_kg * s.reps
+              }
+            }
+          }
+        }
+        break
+      }
+    }
+  }
+
+  return weeks.map((w) => ({
+    weekLabel: w.label,
+    totalVolume: Math.round(w.volume),
+    totalSets: w.sets,
+  }))
+}
+
+export function getRepRangeBreakdown(
+  workouts: HevyWorkout[]
+): RepRangeBreakdown[] {
+  const ranges: Record<string, number> = {
+    'Strength (1-5)': 0,
+    'Hypertrophy (6-12)': 0,
+    'Endurance (13-20)': 0,
+    'High Rep (21+)': 0,
+  }
+
+  for (const w of workouts) {
+    for (const ex of w.exercises) {
+      for (const s of ex.sets) {
+        if ((s.set_type === 'normal' || s.set_type === undefined) && s.reps != null && s.reps > 0) {
+          if (s.reps <= 5) ranges['Strength (1-5)']++
+          else if (s.reps <= 12) ranges['Hypertrophy (6-12)']++
+          else if (s.reps <= 20) ranges['Endurance (13-20)']++
+          else ranges['High Rep (21+)']++
+        }
+      }
+    }
+  }
+
+  const total = Object.values(ranges).reduce((s, n) => s + n, 0)
+
+  return Object.entries(ranges)
+    .filter(([, count]) => count > 0)
+    .map(([range, count]) => ({
+      range,
+      count,
+      percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+    }))
+}
+
+export function getTimeOfDay(
+  workouts: HevyWorkout[]
+): TimeOfDayBucket[] {
+  const buckets: Record<number, number> = {}
+  for (let h = 0; h < 24; h++) buckets[h] = 0
+
+  for (const w of workouts) {
+    const hour = new Date(w.start_time).getHours()
+    buckets[hour]++
+  }
+
+  const labels = [
+    '12a', '1a', '2a', '3a', '4a', '5a', '6a', '7a', '8a', '9a', '10a', '11a',
+    '12p', '1p', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p', '10p', '11p',
+  ]
+
+  return Object.entries(buckets).map(([hour, count]) => ({
+    hour: Number(hour),
+    label: labels[Number(hour)],
+    count,
+  }))
+}
+
+export function getExerciseRanking(
+  workouts: HevyWorkout[]
+): ExerciseRank[] {
+  const exercises: Record<string, {
+    muscleGroup: string
+    sessions: number
+    totalVolume: number
+    best1RM: number
+    recentRMs: number[]
+  }> = {}
+
+  for (const w of workouts) {
+    for (const ex of w.exercises) {
+      if (!exercises[ex.title]) {
+        exercises[ex.title] = {
+          muscleGroup: getMuscleGroup(ex),
+          sessions: 0,
+          totalVolume: 0,
+          best1RM: 0,
+          recentRMs: [],
+        }
+      }
+      const e = exercises[ex.title]
+      e.sessions++
+
+      let sessionBest1RM = 0
+      for (const s of ex.sets) {
+        if ((s.set_type === 'normal' || s.set_type === undefined) && s.weight_kg != null && s.reps != null) {
+          e.totalVolume += s.weight_kg * s.reps
+          const rm = s.weight_kg * (1 + s.reps / 30)
+          if (rm > sessionBest1RM) sessionBest1RM = rm
+          if (rm > e.best1RM) e.best1RM = rm
+        }
+      }
+      if (sessionBest1RM > 0) e.recentRMs.push(sessionBest1RM)
+    }
+  }
+
+  return Object.entries(exercises)
+    .map(([title, data]) => {
+      let trend: 'up' | 'down' | 'stable' = 'stable'
+      if (data.recentRMs.length >= 3) {
+        const recent = data.recentRMs.slice(-3)
+        const avg = recent.reduce((s, n) => s + n, 0) / recent.length
+        const older = data.recentRMs.slice(0, Math.max(1, data.recentRMs.length - 3))
+        const olderAvg = older.reduce((s, n) => s + n, 0) / older.length
+        const change = ((avg - olderAvg) / olderAvg) * 100
+        if (change > 2) trend = 'up'
+        else if (change < -2) trend = 'down'
+      }
+
+      return {
+        title,
+        muscleGroup: data.muscleGroup,
+        sessions: data.sessions,
+        totalVolume: Math.round(data.totalVolume),
+        best1RM: Math.round(data.best1RM * 10) / 10,
+        trend,
+      }
+    })
+    .sort((a, b) => b.sessions - a.sessions)
+    .slice(0, 12)
 }
