@@ -134,6 +134,34 @@ export interface ExerciseRank {
   trend: 'up' | 'down' | 'stable'
 }
 
+// ── AI Feature types ───────────────────────────────────────
+
+export interface UserBiometrics {
+  weightKg: number | null
+  heightCm: number | null
+  age: number | null
+  gender: string | null
+}
+
+export interface StrengthGoal {
+  exercise: string
+  current1RM: number
+  target1RM: number
+  timeframeWeeks: number
+  weeklyPlan: string
+}
+
+export interface NutritionHint {
+  title: string
+  body: string
+  type: 'calories' | 'protein' | 'recovery' | 'hydration' | 'timing'
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export interface DashboardData {
   summary: SummaryStats
   topLifts: Record<string, LiftSession[]>
@@ -148,4 +176,5 @@ export interface DashboardData {
   repRanges: RepRangeBreakdown[]
   timeOfDay: TimeOfDayBucket[]
   exerciseRanking: ExerciseRank[]
+  biometrics?: UserBiometrics
 }

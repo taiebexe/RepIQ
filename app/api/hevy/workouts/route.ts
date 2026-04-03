@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { fetchAllWorkouts } from '@/lib/hevy'
-import { fetchAllWorkoutsInternal } from '@/lib/hevy-internal'
+import { fetchAllWorkoutsInternal, fetchUserBiometrics } from '@/lib/hevy-internal'
 import {
   getTopLifts,
   getWeeklyVolume,
@@ -16,7 +16,7 @@ import {
   getTimeOfDay,
   getExerciseRanking,
 } from '@/lib/analytics'
-import { AuthType } from '@/lib/types'
+import { AuthType, UserBiometrics } from '@/lib/types'
 
 export async function POST(req: Request) {
   try {
@@ -24,6 +24,7 @@ export async function POST(req: Request) {
     const authType: AuthType = body.authType || 'api_key'
 
     let workouts
+    let biometrics: UserBiometrics | undefined
 
     if (authType === 'credentials') {
       const { accessToken, username } = body
@@ -33,7 +34,12 @@ export async function POST(req: Request) {
           { status: 400 }
         )
       }
-      workouts = await fetchAllWorkoutsInternal(accessToken, username)
+      const [w, bio] = await Promise.all([
+        fetchAllWorkoutsInternal(accessToken, username),
+        fetchUserBiometrics(accessToken),
+      ])
+      workouts = w
+      biometrics = bio
     } else {
       const { apiKey } = body
       if (!apiKey) {
@@ -73,6 +79,7 @@ export async function POST(req: Request) {
       repRanges,
       timeOfDay,
       exerciseRanking,
+      biometrics,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

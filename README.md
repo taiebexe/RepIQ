@@ -55,7 +55,7 @@ No database. No accounts. Fully stateless.
 ### 1. Prerequisites
 
 - **Node.js 18+** — check with `node -v`
-- **Anthropic API key** (optional) — for AI coaching insights. Get one at [console.anthropic.com](https://console.anthropic.com/)
+- **AI API key** (optional) — for AI coaching insights. **Gemini is free** at [aistudio.google.com/apikey](https://aistudio.google.com/app/apikey). Also supports [Anthropic](https://console.anthropic.com/) and [OpenAI](https://platform.openai.com/)
 
 ### 2. Install
 
@@ -70,10 +70,15 @@ npm install
 Create a `.env.local` file in the project root to enable AI insights:
 
 ```env
-ANTHROPIC_API_KEY=sk-ant-your-key-here
+# Free — get a key at https://aistudio.google.com/apikey
+GEMINI_API_KEY=your-gemini-key-here
+
+# Optional paid providers (tried if Gemini is not set):
+# ANTHROPIC_API_KEY=sk-ant-your-key-here
+# OPENAI_API_KEY=sk-your-key-here
 ```
 
-If you skip this, the dashboard will show generic fallback insights instead of personalized ones.
+If you skip all, the dashboard will show generic fallback insights instead of personalized ones.
 
 ### 4. Run
 
@@ -107,7 +112,7 @@ The dashboard loads automatically after login. Click **Disconnect** in the top-r
 | Language | TypeScript |
 | Styling | Tailwind CSS |
 | Charts | [Recharts](https://recharts.org/) |
-| AI | [Anthropic SDK](https://docs.anthropic.com/) (Claude) |
+| AI | [Google Gemini](https://ai.google.dev/) (free), [Anthropic](https://docs.anthropic.com/), or [OpenAI](https://platform.openai.com/docs) |
 | Auth | Hevy OAuth2 + reCAPTCHA v3 Enterprise |
 
 ---

@@ -1,4 +1,4 @@
-import { HevyWorkout, LoginResponse } from './types'
+import { HevyWorkout, LoginResponse, UserBiometrics } from './types'
 
 const BASE_URL = 'https://api.hevyapp.com'
 const INTERNAL_API_KEY = 'klean_kanteen_insulated'
@@ -76,6 +76,25 @@ export async function fetchUserAccount(accessToken: string) {
   })
   if (!res.ok) throw new Error('Failed to fetch user account')
   return res.json()
+}
+
+export async function fetchUserBiometrics(accessToken: string): Promise<UserBiometrics> {
+  try {
+    const account = await fetchUserAccount(accessToken)
+    return {
+      weightKg: account.weight_kg ?? account.body_weight_kg ?? null,
+      heightCm: account.height_cm ?? null,
+      age: account.date_of_birth
+        ? Math.floor(
+            (Date.now() - new Date(account.date_of_birth).getTime()) /
+              (365.25 * 24 * 60 * 60 * 1000)
+          )
+        : null,
+      gender: account.gender ?? null,
+    }
+  } catch {
+    return { weightKg: null, heightCm: null, age: null, gender: null }
+  }
 }
 
 function normalizeTimestamp(ts: number | string): string {

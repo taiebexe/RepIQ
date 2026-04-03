@@ -281,6 +281,18 @@ export default function Home() {
           <p className="mt-4 text-center text-xs text-[#555]">
             Your data stays in your browser. Nothing is stored on our servers.
           </p>
+
+          <div className="mt-4 flex justify-center">
+            <a
+              href="https://paypal.me/TaiebBourbia"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-full border border-[#f59e0b30] bg-[#f59e0b08] px-4 py-2 text-xs font-medium text-[#f59e0b] transition-all hover:border-[#f59e0b50] hover:bg-[#f59e0b15]"
+            >
+              <span>☕</span>
+              <span>Buy me a coffee</span>
+            </a>
+          </div>
         </div>
       </div>
     </>

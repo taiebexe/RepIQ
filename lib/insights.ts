@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { aiComplete } from './ai'
 import { AIInsight, PlateauSignal } from './types'
 
 const FALLBACK_INSIGHTS: AIInsight[] = [
@@ -19,26 +19,7 @@ const FALLBACK_INSIGHTS: AIInsight[] = [
   },
 ]
 
-export async function generateInsights(
-  aiContext: string,
-  plateaus: PlateauSignal[]
-): Promise<AIInsight[]> {
-  try {
-    const client = new Anthropic()
-
-    const plateauDetail =
-      plateaus.length > 0
-        ? `\n\nPlateau details:\n${plateaus
-            .map(
-              (p) =>
-                `- ${p.exercise}: stalled for ${p.sessionsStalled} sessions, last PR was ${p.lastPRWeightKg}kg on ${p.lastPRDate}`
-            )
-            .join('\n')}`
-        : ''
-
-    const userMessage = aiContext + plateauDetail
-
-    const systemPrompt = `You are an expert strength and conditioning coach analyzing a lifter's training data. Provide exactly 3 specific, actionable insights based on their actual numbers.
+const SYSTEM_PROMPT = `You are an expert strength and conditioning coach analyzing a lifter's training data. Provide exactly 3 specific, actionable insights based on their actual numbers.
 
 Each insight must:
 - Reference specific numbers from their data
@@ -59,15 +40,30 @@ Respond ONLY with valid JSON — no markdown, no explanation:
 }
 Be direct. Talk like a coach who studied the numbers.`
 
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 600,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
-    })
+export async function generateInsights(
+  aiContext: string,
+  plateaus: PlateauSignal[]
+): Promise<AIInsight[]> {
+  const plateauDetail =
+    plateaus.length > 0
+      ? `\n\nPlateau details:\n${plateaus
+          .map(
+            (p) =>
+              `- ${p.exercise}: stalled for ${p.sessionsStalled} sessions, last PR was ${p.lastPRWeightKg}kg on ${p.lastPRDate}`
+          )
+          .join('\n')}`
+      : ''
 
-    const text =
-      response.content[0].type === 'text' ? response.content[0].text : ''
+  const userMessage = aiContext + plateauDetail
+
+  try {
+    const text = await aiComplete([
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userMessage },
+    ], 600)
+
+    if (!text) return FALLBACK_INSIGHTS
+
     const parsed = JSON.parse(text)
     return parsed.insights as AIInsight[]
   } catch {
